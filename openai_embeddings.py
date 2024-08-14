@@ -17,37 +17,23 @@ OpenAI.api_key = os.getenv('OPENAI_API_KEY')'''
 # drive.mount('/content/drive')
 
 # If local storage:
-current_dir = os.getcwd()
-sample_data_directory = os.path.join(current_dir, "sampledata/precompressed/llm_precompressed")
-
-#Generate the data frame
-def list_files(startpath):
-    for root, dirs, files in os.walk(startpath):
-        level = root.replace(startpath, '').count(os.sep)
-        indent = ' ' * 4 * (level)
-        print(f"{indent}{os.path.basename(root)}/")
-        subindent = ' ' * 4 * (level + 1)
-        for f in files:
-            print(f"{subindent}{f}")
+# Set the directory where articles were saved using the other script
+sample_data_directory = "wikipedia_articles"
 
 # Function to process a single file and return its data
 def process_file(file_path):
     with open(file_path, 'r', encoding='utf-8') as file:
         content = file.read()
-    segments = re.split(r'\[LLM GENERATED SUMMARY\]', content)
-    data = []
-    for i in range(1, len(segments), 2):
-        summary_segment = segments[i].strip()
-        if i - 1 >= 0:
-            previous_text = segments[i - 1].strip()
-            timestamp_match = re.search(r'\[timestamp: (.*?)\]', previous_text)
-            if timestamp_match:
-                timestamp = timestamp_match.group(1)
-                previous_text = re.sub(r'\[timestamp: .*?\]', '', previous_text).strip()
-            else:
-                timestamp = None
-            data.append([summary_segment, previous_text, timestamp])
-    return data
+    
+    # Example: Use the first paragraph as a summary
+    paragraphs = content.split('\n\n')
+    summary = paragraphs[0].strip() if paragraphs else ""
+    main_text = '\n\n'.join(paragraphs[1:]).strip() if len(paragraphs) > 1 else ""
+
+    # No timestamp available, so we use None or a placeholder
+    timestamp = None
+    
+    return [[summary, main_text, timestamp]]
 
 # Initialize an empty list to store all data
 all_data = []
@@ -64,7 +50,6 @@ for root, dirs, files in os.walk(sample_data_directory):
 df = pd.DataFrame(all_data, columns=['Summary', 'Text', 'Timestamp'])
 
 # Extract summaries into a list
-# IMPORTANT FOR SUBSEQUENT CODE FLOW
 summaries_list = df['Summary'].tolist()
 
 ## String search: this code is independent of LLM providers
